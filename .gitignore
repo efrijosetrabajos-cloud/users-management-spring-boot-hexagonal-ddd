@@ -40,4 +40,7 @@ build/
 .idea/
 *.log
 
+# Docker
+.env
+
 /spec/

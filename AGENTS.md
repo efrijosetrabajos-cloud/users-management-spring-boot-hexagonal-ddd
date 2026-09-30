@@ -14,7 +14,7 @@ application/
   service/       ← Service implementations — @Service, injected through constructors
   service/dto/   ← command/ and query/ records with Bean Validation constraints
 infrastructure/
-  adapter/persistence/   ← UserRepositoryMySQL: implements ALL out-ports via raw JDBC (no JPA)
+  adapter/persistence/   ← UserRepositoryPostgreSQL: implements ALL out-ports via raw JDBC (no JPA)
   adapter/email/         ← JavaMailEmailSenderAdapter (javax.mail, NOT jakarta.mail — intentional)
   entrypoint/rest/       ← Active Spring MVC REST API
   entrypoint/desktop/    ← Inactive CLI adapter; it has no independent composition root
@@ -32,7 +32,7 @@ infrastructure/
 | `Main.java` | Starts the single Spring composition root |
 | `infrastructure/config/DataSourceSpringConfig.java` | Builds the HikariCP `DataSource` bean |
 | `infrastructure/config/SmtpSpringConfig.java` | Builds the SMTP configuration bean |
-| `infrastructure/adapter/persistence/repository/UserRepositoryMySQL.java` | Single class implements 6 out-ports via raw JDBC |
+| `infrastructure/adapter/persistence/repository/UserRepositoryPostgreSQL.java` | Single class implements 6 out-ports via raw JDBC |
 | `domain/model/UserModel.java` | Core aggregate — immutable (`@Value`), factory method `create()`, state transitions `activate()`/`deactivate()` |
 | `domain/valueobject/UserPassword.java` | `fromPlainText()` hashes with BCrypt; `fromHash()` for DB reads |
 | `infrastructure/entrypoint/rest/controller/UserRestController.java` | Active REST controller |
@@ -52,7 +52,7 @@ mvn test
 # Coverage report (generated at target/site/jacoco/index.html)
 mvn verify
 
-# Run the application (requires MySQL + SMTP configured in application.properties)
+# Run the application (requires PostgreSQL + SMTP configured in application.properties)
 mvn spring-boot:run
 # or
 java -jar target/users-management-2.0.0-SNAPSHOT.jar
@@ -80,7 +80,7 @@ java -jar target/users-management-2.0.0-SNAPSHOT.jar
 
 ## External Dependencies & Integration Points
 
-- **Database:** MySQL via raw JDBC (`spring-boot-starter-jdbc` provides `HikariCP`). Schema in `src/main/resources/schema.sql`. Config keys: `db.host`, `db.port`, `db.name`, `db.username`, `db.password`.  
+- **Database:** PostgreSQL via raw JDBC (`spring-boot-starter-jdbc` provides `HikariCP`). Schema in `src/main/resources/schema.sql`. Config keys: `db.host`, `db.port`, `db.name`, `db.username`, `db.password`.
 - **Email:** SMTP via `javax.mail` (legacy `com.sun.mail:javax.mail:1.6.2`). **Not** migrated to `jakarta.mail`. Config keys: `smtp.host`, `smtp.port`, `smtp.username`, `smtp.password`, `smtp.from.address`, `smtp.from.name`.  
 - **Password hashing:** `at.favre.lib:bcrypt` — cost factor 12. Always use `UserPassword.fromPlainText()` for new passwords and `UserPassword.fromHash()` when reading from DB.
 
