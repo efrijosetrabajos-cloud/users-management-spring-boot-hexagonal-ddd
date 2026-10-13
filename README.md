@@ -87,11 +87,21 @@ docker compose down -v
 
 En Windows se puede utilizar `mvnw.cmd`.
 
+## Secretos para desarrollo local
+
+Copiar `application-secrets.properties.example` como
+`.environments/application-secrets.properties` y reemplazar los valores de ejemplo.
+Este archivo contiene la conexion local a la base de datos, la semilla JWT y las credenciales de
+Brevo. La carpeta `.environments` esta excluida de Git y del contexto de Docker.
+
+En produccion no se utiliza este archivo: los secretos deben configurarse mediante las
+variables de entorno `DB_*`, `JWT_SECRET` y `BREVO_*` del proveedor de despliegue.
+
 ## PostgreSQL con Docker
 
 Requisitos: Docker y Docker Compose.
 
-Para levantar PostgreSQL, MailHog y la aplicación:
+Para levantar PostgreSQL y la aplicación:
 
 ```bash
 docker compose up -d --build
@@ -101,12 +111,12 @@ Servicios disponibles:
 
 - API: `http://localhost:8080`
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
-- MailHog: `http://localhost:8025`
 - PostgreSQL: `localhost:5432`, base `crud_usuarios`, usuario `postgres`, contraseña `postgres`
 
-La configuración local usa PostgreSQL. Las variables `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME` y
-`DB_PASSWORD` permiten conectarse a otra instancia. Para apagar los
-servicios sin borrar los datos:
+La configuración local usa PostgreSQL. Las variables `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`,
+`DB_PASSWORD` y `DB_SSLMODE` permiten conectarse a otra instancia.
+
+Para apagar los servicios sin borrar los datos:
 
 ```bash
 docker compose down
@@ -118,3 +128,14 @@ Para borrar también el volumen de PostgreSQL:
 docker compose down -v
 ```
 
+## Notificaciones por correo (Brevo)
+
+Los correos transaccionales se envian con `POST /v3/smtp/email` de Brevo. La llamada
+se ejecuta fuera del hilo HTTP en el executor `notificationExecutor` y dispone de
+timeouts, reintentos para errores de red/408/429/5xx con backoff exponencial, circuit
+breaker e idempotencia para evitar duplicados durante los reintentos.
+
+Variables requeridas: `BREVO_API_KEY` y `BREVO_FROM_ADDRESS`. El remitente debe estar
+verificado en Brevo. Los parametros de resiliencia `BREVO_CONNECT_TIMEOUT`,
+`BREVO_READ_TIMEOUT`, `BREVO_RETRY_*` y `BREVO_CIRCUIT_*` son opcionales y tienen
+valores predeterminados en `application.properties`.

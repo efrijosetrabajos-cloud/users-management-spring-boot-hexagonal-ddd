@@ -43,7 +43,7 @@ public class DataSourceSpringConfig {
   @Bean
   public DataSource dataSource() {
     final DatabaseConfig config =
-      new DatabaseConfig(dbHost, dbPort, dbName, dbUsername, dbPassword, dbSslMode);
+        new DatabaseConfig(dbHost, dbPort, dbName, dbUsername, dbPassword, dbSslMode);
 
     final HikariConfig hikariConfig = new HikariConfig();
     hikariConfig.setJdbcUrl(config.buildJdbcUrl());
