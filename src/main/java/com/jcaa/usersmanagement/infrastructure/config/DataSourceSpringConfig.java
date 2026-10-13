@@ -49,9 +49,13 @@ public class DataSourceSpringConfig {
     hikariConfig.setJdbcUrl(config.buildJdbcUrl());
     hikariConfig.setUsername(config.username());
     hikariConfig.setPassword(config.password());
-    hikariConfig.setMaximumPoolSize(10);
-    hikariConfig.setMinimumIdle(2);
+    hikariConfig.setMaximumPoolSize(5);
+    hikariConfig.setMinimumIdle(1);
+    hikariConfig.setMaxLifetime(240_000);
+    hikariConfig.setIdleTimeout(120_000);
+    hikariConfig.setKeepaliveTime(60_000);
     hikariConfig.setConnectionTimeout(30_000);
+    hikariConfig.setValidationTimeout(5_000);
 
     log.info(LOG_DATASOURCE_INIT, dbHost, dbPort);
     return new HikariDataSource(hikariConfig);
