@@ -18,7 +18,7 @@ public class DataSourceSpringConfig {
   private static final String PROP_DB_NAME     = "${db.name}";
   private static final String PROP_DB_USERNAME = "${db.username}";
   private static final String PROP_DB_PASSWORD = "${db.password}";
-  private static final String PROP_DB_SSL_MODE = "${db.ssl-mode}";
+  private static final String PROP_DB_SSL_MODE = "${db.sslmode}";
 
   private static final String LOG_DATASOURCE_INIT = "[DataSourceSpringConfig] DataSource inicializado. host={} port={}";
 
@@ -49,9 +49,13 @@ public class DataSourceSpringConfig {
     hikariConfig.setJdbcUrl(config.buildJdbcUrl());
     hikariConfig.setUsername(config.username());
     hikariConfig.setPassword(config.password());
-    hikariConfig.setMaximumPoolSize(10);
-    hikariConfig.setMinimumIdle(2);
+    hikariConfig.setMaximumPoolSize(5);
+    hikariConfig.setMinimumIdle(1);
+    hikariConfig.setMaxLifetime(240_000);
+    hikariConfig.setIdleTimeout(120_000);
+    hikariConfig.setKeepaliveTime(60_000);
     hikariConfig.setConnectionTimeout(30_000);
+    hikariConfig.setValidationTimeout(5_000);
 
     log.info(LOG_DATASOURCE_INIT, dbHost, dbPort);
     return new HikariDataSource(hikariConfig);

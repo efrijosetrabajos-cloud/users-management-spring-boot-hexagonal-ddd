@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+
 INSERT INTO users (id, name, email, password, role, status)
 VALUES (
     '00000000-0000-0000-0000-000000000001',

@@ -8,7 +8,7 @@ Spring es el único *composition root*: `Main` inicia el contexto y las dependen
 
 ## Ejecución con Docker (recomendado)
 
-El sistema completo (aplicación + MySQL + SMTP) se levanta con un solo comando.
+El sistema completo (aplicación + PostgreSQL + SMTP) se levanta con un solo comando.
 
 ### Prerequisitos
 
@@ -21,14 +21,14 @@ El sistema completo (aplicación + MySQL + SMTP) se levanta con un solo comando.
 docker compose up --build
 ```
 
-Esto construye la imagen de la aplicación, levanta MySQL, MailHog (SMTP de prueba) y la app. La base de datos se inicializa automáticamente con el esquema y un usuario administrador.
+Esto construye la imagen de la aplicación, levanta PostgreSQL, MailHog (SMTP de prueba) y la app. La base de datos se inicializa automáticamente con el esquema y un usuario administrador.
 
 ### Servicios y puertos
 
 | Servicio  | Puerto  | Descripción                         |
 |-----------|---------|-------------------------------------|
 | App       | 8080    | API REST                            |
-| MySQL     | 3306    | Base de datos                       |
+| PostgreSQL | 5432   | Base de datos                       |
 | MailHog   | 8025    | Web UI para ver correos enviados    |
 | MailHog   | 1025    | SMTP (para la app)                  |
 
@@ -63,12 +63,11 @@ Abrir http://localhost:8025 para acceder a la interfaz de MailHog y ver los corr
 docker compose down
 ```
 
-### Eliminar datos (MySQL volumes)
+### Eliminar datos (volumen de PostgreSQL)
 
 ```bash
 docker compose down -v
 ```
-
 ---
 
 ## Ejecución local (sin Docker)
@@ -76,7 +75,7 @@ docker compose down -v
 ### Requisitos
 
 - Java 17
-- MySQL 8 corriendo en `localhost:3306`
+- PostgreSQL 16 corriendo en `localhost:5432`
 - Base de datos `crud_usuarios` creada (ejecutar `src/main/resources/schema.sql`)
 
 ### Build y test
@@ -88,19 +87,55 @@ docker compose down -v
 
 En Windows se puede utilizar `mvnw.cmd`.
 
-## Despliegue en Render
+## Secretos para desarrollo local
 
-El archivo `render.yaml` define el servicio web, el build con Docker y el despliegue
-automático de cada commit que llegue a la rama `main`.
+Copiar `application-secrets.properties.example` como
+`.environments/application-secrets.properties` y reemplazar los valores de ejemplo.
+Este archivo contiene la conexion local a la base de datos, la semilla JWT y las credenciales de
+Brevo. La carpeta `.environments` esta excluida de Git y del contexto de Docker.
 
-1. Crear un Blueprint en Render y seleccionar este repositorio.
-2. Completar en el panel los secretos marcados como requeridos: `DB_HOST`,
-   `DB_USERNAME`, `DB_PASSWORD`, `SMTP_USERNAME`, `SMTP_PASSWORD` y
-   `SMTP_FROM_ADDRESS`.
-3. Usar una instancia MySQL accesible desde Internet o desde la red privada de
-   Render y ejecutar `src/main/resources/schema.sql` una vez para crear el esquema.
-4. Desplegar el Blueprint. La API quedará disponible en el subdominio
-   `onrender.com` asignado por Render y Swagger UI en `/swagger-ui.html`.
+En produccion no se utiliza este archivo: los secretos deben configurarse mediante las
+variables de entorno `DB_*`, `JWT_SECRET` y `BREVO_*` del proveedor de despliegue.
 
-Las credenciales nunca deben guardarse en `application.properties` ni en
-`render.yaml`. Para desarrollo local, deben proporcionarse como variables de entorno.
+## PostgreSQL con Docker
+
+Requisitos: Docker y Docker Compose.
+
+Para levantar PostgreSQL y la aplicación:
+
+```bash
+docker compose up -d --build
+```
+
+Servicios disponibles:
+
+- API: `http://localhost:8080`
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+- PostgreSQL: `localhost:5432`, base `crud_usuarios`, usuario `postgres`, contraseña `postgres`
+
+La configuración local usa PostgreSQL. Las variables `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`,
+`DB_PASSWORD` y `DB_SSLMODE` permiten conectarse a otra instancia.
+
+Para apagar los servicios sin borrar los datos:
+
+```bash
+docker compose down
+```
+
+Para borrar también el volumen de PostgreSQL:
+
+```bash
+docker compose down -v
+```
+
+## Notificaciones por correo (Brevo)
+
+Los correos transaccionales se envian con `POST /v3/smtp/email` de Brevo. La llamada
+se ejecuta fuera del hilo HTTP en el executor `notificationExecutor` y dispone de
+timeouts, reintentos para errores de red/408/429/5xx con backoff exponencial, circuit
+breaker e idempotencia para evitar duplicados durante los reintentos.
+
+Variables requeridas: `BREVO_API_KEY` y `BREVO_FROM_ADDRESS`. El remitente debe estar
+verificado en Brevo. Los parametros de resiliencia `BREVO_CONNECT_TIMEOUT`,
+`BREVO_READ_TIMEOUT`, `BREVO_RETRY_*` y `BREVO_CIRCUIT_*` son opcionales y tienen
+valores predeterminados en `application.properties`.
