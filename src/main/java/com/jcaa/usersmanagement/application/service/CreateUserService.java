@@ -1,6 +1,7 @@
 package com.jcaa.usersmanagement.application.service;
 
 import com.jcaa.usersmanagement.application.port.in.CreateUserUseCase;
+import com.jcaa.usersmanagement.application.port.out.AccountClientPort;
 import com.jcaa.usersmanagement.application.port.out.GetUserByEmailPort;
 import com.jcaa.usersmanagement.application.port.out.SaveUserPort;
 import com.jcaa.usersmanagement.application.service.dto.command.CreateUserCommand;
@@ -25,7 +26,7 @@ public class CreateUserService implements CreateUserUseCase {
 
   private final SaveUserPort saveUserPort;
   private final GetUserByEmailPort getUserByEmailPort;
-  private final EmailNotificationService emailNotificationService;
+  private final AccountClientPort accountClientPort;
   private final EventPublisherPort eventPublisherPort;
   private final Validator validator;
 
@@ -39,9 +40,11 @@ public class CreateUserService implements CreateUserUseCase {
     final UserModel userToSave = UserApplicationMapper.fromCreateCommandToModel(command);
     final UserModel savedUser = saveUserPort.save(userToSave);
 
-    eventPublisherPort.publishUserCreated(savedUser);
+    // Notificar a accounts para que cree la cuenta
+    accountClientPort.createAccountForUser(savedUser);
 
-    emailNotificationService.notifyUserCreated(savedUser, command.password());
+    // Publicar evento en Kafka para que notifier envie el correo
+    eventPublisherPort.publishUserCreated(savedUser);
 
     return savedUser;
   }

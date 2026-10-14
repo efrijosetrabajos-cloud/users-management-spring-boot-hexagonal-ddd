@@ -19,6 +19,7 @@ import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
 import java.util.Optional;
+import com.jcaa.usersmanagement.application.port.out.AccountClientPort;
 import com.jcaa.usersmanagement.domain.port.EventPublisherPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,7 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 /**
  * Tests para CreateUserService.
  *
- * <p>Cubre: validación del command, email duplicado y flujo feliz (save + notificación).
+ * <p>Cubre: validación del command, email duplicado y flujo feliz (save + account creation + kafka event).
  */
 @DisplayName("CreateUserService")
 @ExtendWith(MockitoExtension.class)
@@ -38,7 +39,7 @@ class CreateUserServiceTest {
 
   @Mock private SaveUserPort saveUserPort;
   @Mock private GetUserByEmailPort getUserByEmailPort;
-  @Mock private EmailNotificationService emailNotificationService;
+  @Mock private AccountClientPort accountClientPort;
   @Mock private EventPublisherPort eventPublisherPort;
 
   private CreateUserService service;
@@ -50,7 +51,7 @@ class CreateUserServiceTest {
           new CreateUserService(
               saveUserPort,
               getUserByEmailPort,
-              emailNotificationService,
+              accountClientPort,
               eventPublisherPort,
               validatorFactory.getValidator());
     }
@@ -59,7 +60,7 @@ class CreateUserServiceTest {
   // ── flujo feliz
 
   @Test
-  @DisplayName("execute() guarda el usuario y envía notificación cuando el email no existe")
+  @DisplayName("execute() guarda el usuario, solicita cuenta a accounts y publica evento en Kafka")
   void shouldSaveUserAndNotifyWhenEmailIsNew() {
     // Arrange
     final CreateUserCommand command =
@@ -87,8 +88,8 @@ class CreateUserServiceTest {
         () -> assertEquals("u-01", result.getId().value(), "id del usuario guardado"));
 
     verify(saveUserPort).save(any(UserModel.class));
+    verify(accountClientPort).createAccountForUser(savedUser);
     verify(eventPublisherPort).publishUserCreated(savedUser);
-    verify(emailNotificationService).notifyUserCreated(savedUser, "Pass1234");
   }
 
   // ── email duplicado
@@ -114,7 +115,8 @@ class CreateUserServiceTest {
     // Act & Assert
     assertThrows(UserAlreadyExistsException.class, () -> service.execute(command));
     verify(saveUserPort, never()).save(any());
-    verify(emailNotificationService, never()).notifyUserCreated(any(), any());
+    verify(accountClientPort, never()).createAccountForUser(any());
+    verify(eventPublisherPort, never()).publishUserCreated(any());
   }
 
   // ── validación del command
@@ -129,6 +131,6 @@ class CreateUserServiceTest {
 
     // Act & Assert
     assertThrows(ConstraintViolationException.class, () -> service.execute(command));
-    verifyNoInteractions(saveUserPort, getUserByEmailPort, emailNotificationService);
+    verifyNoInteractions(saveUserPort, getUserByEmailPort, accountClientPort, eventPublisherPort);
   }
 }
