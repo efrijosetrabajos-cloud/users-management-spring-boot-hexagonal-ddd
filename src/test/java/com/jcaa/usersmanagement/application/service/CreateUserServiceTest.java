@@ -19,6 +19,7 @@ import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
 import java.util.Optional;
+import com.jcaa.usersmanagement.domain.port.EventPublisherPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,7 @@ class CreateUserServiceTest {
   @Mock private SaveUserPort saveUserPort;
   @Mock private GetUserByEmailPort getUserByEmailPort;
   @Mock private EmailNotificationService emailNotificationService;
+  @Mock private EventPublisherPort eventPublisherPort;
 
   private CreateUserService service;
 
@@ -49,6 +51,7 @@ class CreateUserServiceTest {
               saveUserPort,
               getUserByEmailPort,
               emailNotificationService,
+              eventPublisherPort,
               validatorFactory.getValidator());
     }
   }
@@ -84,6 +87,7 @@ class CreateUserServiceTest {
         () -> assertEquals("u-01", result.getId().value(), "id del usuario guardado"));
 
     verify(saveUserPort).save(any(UserModel.class));
+    verify(eventPublisherPort).publishUserCreated(savedUser);
     verify(emailNotificationService).notifyUserCreated(savedUser, "Pass1234");
   }
 

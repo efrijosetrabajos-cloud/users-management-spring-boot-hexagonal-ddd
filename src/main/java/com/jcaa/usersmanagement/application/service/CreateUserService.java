@@ -7,6 +7,7 @@ import com.jcaa.usersmanagement.application.service.dto.command.CreateUserComman
 import com.jcaa.usersmanagement.application.service.mapper.UserApplicationMapper;
 import com.jcaa.usersmanagement.domain.exception.UserAlreadyExistsException;
 import com.jcaa.usersmanagement.domain.model.UserModel;
+import com.jcaa.usersmanagement.domain.port.EventPublisherPort;
 import com.jcaa.usersmanagement.domain.valueobject.UserEmail;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
@@ -25,6 +26,7 @@ public class CreateUserService implements CreateUserUseCase {
   private final SaveUserPort saveUserPort;
   private final GetUserByEmailPort getUserByEmailPort;
   private final EmailNotificationService emailNotificationService;
+  private final EventPublisherPort eventPublisherPort;
   private final Validator validator;
 
   @Override
@@ -36,6 +38,8 @@ public class CreateUserService implements CreateUserUseCase {
 
     final UserModel userToSave = UserApplicationMapper.fromCreateCommandToModel(command);
     final UserModel savedUser = saveUserPort.save(userToSave);
+
+    eventPublisherPort.publishUserCreated(savedUser);
 
     emailNotificationService.notifyUserCreated(savedUser, command.password());
 

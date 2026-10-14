@@ -40,15 +40,29 @@ public class DataSourceSpringConfig {
   @Value(PROP_DB_SSL_MODE)
   private String dbSslMode;
 
+  @Value("${spring.datasource.url:#{null}}")
+  private String springDatasourceUrl;
+
   @Bean
   public DataSource dataSource() {
     final DatabaseConfig config =
         new DatabaseConfig(dbHost, dbPort, dbName, dbUsername, dbPassword, dbSslMode);
 
     final HikariConfig hikariConfig = new HikariConfig();
-    hikariConfig.setJdbcUrl(config.buildJdbcUrl());
-    hikariConfig.setUsername(config.username());
-    hikariConfig.setPassword(config.password());
+    hikariConfig.setDriverClassName("org.postgresql.Driver");
+
+    if (springDatasourceUrl != null && !springDatasourceUrl.isBlank()) {
+      hikariConfig.setJdbcUrl(springDatasourceUrl);
+    } else {
+      hikariConfig.setJdbcUrl(config.buildJdbcUrl());
+    }
+
+    if (config.username() != null && !config.username().isBlank()) {
+      hikariConfig.setUsername(config.username());
+    }
+    if (config.password() != null && !config.password().isBlank()) {
+      hikariConfig.setPassword(config.password());
+    }
     hikariConfig.setMaximumPoolSize(5);
     hikariConfig.setMinimumIdle(1);
     hikariConfig.setMaxLifetime(240_000);

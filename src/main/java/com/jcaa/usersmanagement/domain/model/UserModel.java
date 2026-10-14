@@ -9,7 +9,7 @@ import com.jcaa.usersmanagement.domain.valueobject.UserPassword;
 import lombok.Value;
 
 @Value
-public class UserModel {
+public class UserModel implements User {
 
   UserId id;
   UserName name;
